@@ -1,0 +1,16 @@
+{
+  "board": [
+    [
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1
+    ]
+  ],
+  "board_image_pgm": "train_v2/board_5.pgm",
+  "cols": 2,
+  "rows": 2,
+  "total_mines": 1
+}

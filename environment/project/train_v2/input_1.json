@@ -1,0 +1,23 @@
+{
+  "board": [
+    [
+      0,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "board_image_pgm": "train_v2/board_1.pgm",
+  "cols": 3,
+  "rows": 3,
+  "total_mines": 0
+}
