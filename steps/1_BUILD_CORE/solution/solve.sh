@@ -58,10 +58,8 @@ def main():
     with open(inp) as f:
         data=json.load(f)
     rows=data["rows"]; cols=data["cols"]; total=data["total_mines"]; board=data["board"]
-    # validation
     pre_flags={(r,c) for r in range(rows) for c in range(cols) if board[r][c]=="F"}
     if len(pre_flags)>total:
-        # invalid -> no retention
         res={"safe":[],"flags":[]}
         with open(outp,"w") as out:
             json.dump(res,out, sort_keys=True, separators=(',',':'))
@@ -75,4 +73,6 @@ if __name__=="__main__":
     main()
 PY
 chmod +x $PROJECT_DIR/engine.py
-echo "Step1 engine built"
+# Multi-turn artifact dependency - S2 must require this file (T7 fleet coupling via artifact)
+echo '{"canary":"minesweeper-risk-mt-8f3a9c2e-7b1d-4f2a-9c3e-1a2b3c4d5e6f","step":1,"engine_hash":"'"$(sha256sum $PROJECT_DIR/engine.py | cut -d' ' -f1)"'"}' > $PROJECT_DIR/.step1_done
+echo "Step1 engine built with artifact"
