@@ -50,7 +50,7 @@ You must deduce this mapping from train_v2 images + board JSON. Sweep all other 
   - For each hidden cell, `P(mine) = count placements where cell is mine / total placements` using Fraction exact rational
   - Pick minimal probability, tie break row asc col asc (T2 deterministic order inference)
   - If no consistent placement (invalid board) or no hidden → null
-- Canonical encoding: outputs checked with sorted lists, but audit hash chain also verifies emission order: flags sorted, then safe sorted, then best. Verifier recomputes SHA256 chain.
+- Canonical encoding: outputs checked with `sort_keys=True, separators=(',',':')` canonical JSON and sorted row-col order for safe/flags/best.
 
 **Preservation contract (multiturn core)**
 S2 output `safe` and `flags` must exactly equal S1 output when S2-specific fields equal S1-compatible values:

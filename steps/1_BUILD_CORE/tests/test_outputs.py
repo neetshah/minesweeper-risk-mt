@@ -188,10 +188,6 @@ def test_sorted_order():
     assert got.get("flags") == sorted(got.get("flags"))
 
 
-def test_step1_marker_exists():
-    # S1 must create .step1_done for multi-turn coupling
-    assert os.path.exists("/app/project/.step1_done"), ".step1_done marker missing - S1 should create it per instruction"
-
 def test_no_s2_artifacts():
     # MC1 and MC2 guards - behavioral not string-based (fixes false rejects from comments)
     assert not os.path.exists("/app/project/audit.jsonl")

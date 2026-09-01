@@ -38,11 +38,10 @@ Reads JSON, writes JSON. Stdlib only, deterministic.
 This is Step1 of two-turn task. Keep code clean modular (e.g. `parse_board, neighbors, deterministic_closure, deduce_safe, deduce_flags`) — Step2 will add PGM image board parsing + probabilistic minimal-risk best tile using exact CSP enumeration, but must reuse every piece you deduce now and preserve S1 output under compatible boards.
 
 **Output format (canonical)**
-- Engine must write JSON with `sort_keys=True, separators=(',',':'), ensure_ascii=False` — whitespace differences break hash chain in S2. Example: `{"flags":[],"safe":[[0,1]]}` not `{"flags": [], "safe": [[0, 1]]}`.
-- On success, also create marker file `/app/project/.step1_done` containing `{"step":1}` — this documents multi-turn coupling and will be checked by S1 verifier and used by S2.
+- Engine must write JSON with `sort_keys=True, separators=(',',':'), ensure_ascii=False` — canonical encoding enforced by verifier. Example: `{"flags":[],"safe":[[0,1]]}` not `{"flags": [], "safe": [[0, 1]]}`.
 
 **Multi-turn artifact**
-- S1 creates `.step1_done` and `engine.py` with `deterministic_closure`. S2 will inherit these via `inherit_prior_session=true` and must reuse `deterministic_closure` via import, not reimplement from scratch. S1 verifier checks marker exists.
+- S1 creates `engine.py` with `deterministic_closure`. S2 will inherit this via `inherit_prior_session=true` and must reuse `deterministic_closure` via import, not reimplement from scratch. The only required artifact is `/app/project/engine.py`.
 
 ## What you know without reading train
 - CLI fixed, file path fixed

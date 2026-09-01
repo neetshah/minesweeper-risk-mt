@@ -73,6 +73,4 @@ if __name__=="__main__":
     main()
 PY
 chmod +x $PROJECT_DIR/engine.py
-# Multi-turn artifact dependency - S2 must require this file (T7 fleet coupling via artifact)
-echo '{"canary":"minesweeper-risk-mt-8f3a9c2e-7b1d-4f2a-9c3e-1a2b3c4d5e6f","step":1,"engine_hash":"'"$(sha256sum $PROJECT_DIR/engine.py | cut -d' ' -f1)"'"}' > $PROJECT_DIR/.step1_done
-echo "Step1 engine built with artifact"
+echo "Step1 engine built"

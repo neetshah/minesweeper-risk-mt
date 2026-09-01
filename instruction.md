@@ -22,10 +22,13 @@ Turn images of minesweeper boards + structured board JSON into next best tile to
 
 **Traps T2,T3,T5,T6,T7**
 - T2 deterministic order: safe sorted row col, best_tile minimal prob tie row col not file order
-- T3 canonical JSON + hash chain: verifier recomputes SHA256 chain emission FLAGS→SAFE→BEST with `sort_keys=True, separators=(',',':')`
+- T3 canonical JSON: verifier checks `sort_keys=True, separators=(',',':')` canonical encoding (no spaces) and sorted row-col order for safe/flags/best
 - T5 uniquely pinned constants via boundaries: train_v2 contains single-pixel difference images flipping hidden↔flag and 4↔5 - only one threshold assignment matches all 8
 - T6 ordering dedup→validation→flag→safe→best: invalid flag>total returns empty no-retain, flag closure before safe
 - T7 fleet coupling: global total_mines couples all hidden cells; far cell can have 0 risk while near clue cells 0.5 - best is far
+
+**Artifact contract**
+- Only required artifact is `/app/project/engine.py` — no sentinel files needed. S2 inherits S1's engine.py via `inherit_prior_session=true`.
 
 ## Completion Rates Expected
 Per quality bar: per-step Avocado >=1 fail + >=1 frontier pass in 5 trials. Overall 2/5 Avocado sweet spot GOOD like compatibility-matcher 37%.
