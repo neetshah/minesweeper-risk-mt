@@ -44,28 +44,19 @@ This is Step1 of two-turn task. Keep code clean modular (e.g. `parse_board, neig
 - S1 creates `engine.py` with `deterministic_closure`. S2 will inherit this via `inherit_prior_session=true` and must reuse `deterministic_closure` via import, not reimplement from scratch. The only required artifact is `/app/project/engine.py`.
 
 ## What you know without reading train
-- CLI fixed, file path fixed
-- Input is JSON board, output safe/flags mapping sorted
-- Deduction is closure: flagging a mine can unlock new safe deductions iteratively (needs loop until fixed point)
+- CLI fixed, file path fixed at `/app/project/engine.py`
+- Input is JSON board with rows/cols/total_mines, output safe/flags mapping
 - Some boards have no deterministic safe/flag → empty lists
-- Flags consume total_mines budget
-- Validation: flag count > total_mines? How to handle? Deduce from train (hint: see input_.. invalid case returns empty)
+- Business rules are NOT stated here — deduce from 8 train pairs
 
 ## What you must do
-1. Read ALL 8 train pairs
-2. Deduce: validation rules, deterministic rule: for each revealed number `v`, let `flagged_neighbors = count flagged input + deduced`, `hidden_neighbors = list -1 not yet decided`. If `v - flagged == 0` → all hidden safe. If `v - flagged == len(hidden)` → all hidden are mines. Iterate closure.
-3. Ordering: output sorted row asc col asc independent of file order. Why? Train shows shuffled hidden positions but expected sorted.
-4. Tightest-fit analog: overlapping clues require intersection; single-pass first-fit misses chain dependencies. Train includes chain case where flagging one enables safe elsewhere.
-5. Write engine that matches train exactly and will generalize. Use only stdlib.
-6. Keep modular because Step2 needs override.
+1. Read ALL 8 train pairs in `/app/project/train/` — they define all deduction rules, validation, and ordering via examples.
+2. Deduce hidden rules via sweep: only one interpretation matches all 8 pairs (validation semantics, ordering, chain dependencies, budget handling).
+3. Write engine that matches train exactly and will generalize to hidden boards from same distribution but different seeds. Use only stdlib.
+4. Keep code modular with functions like `neighbors`, `deterministic_closure` — Step2 will import and extend this file.
 
-## Hints for deduction
-- Look at board with 0 revealed: what hidden cells are safe?
-- Look at board with single hidden neighbor beside 1: what is flagged?
-- Chain board input_3: first flag in one region makes safe in another?
-- Sorted order: check output_4 where safe list out-of-file-order input but sorted.
-- Duplicate handling? Board is 2D so no dedup but flag vs safe overlap must not happen.
-- Preservation for Step2: your safe/flags logic will be reused; Step2 must equal S1 when no probabilistic fallback needed.
+## Anti-cheating adaptation
+- Engine executed via subprocess with dropped privileges, fresh random boards not from train.
 
 ## Anti-cheating
 Do not read from `/tests`, `_dgp`, etc. Engine executed via subprocess on fresh inputs.
