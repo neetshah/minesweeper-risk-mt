@@ -18,7 +18,7 @@ Reads JSON now with extra field `board_image_pgm` optional path to P2 plain PGM 
   "board_image_pgm": "train_v2/board_*.pgm"  // optional relative or absolute path
 }
 ```
-If `board_image_pgm` present, engine must open PGM and decode board state to override `board`. When both present, image is ground truth and equals board in training but verifier may test image-only.
+If `board_image_pgm` present, engine must open PGM and decode board state — **PGM is authoritative ground truth**. The JSON `board` field may be present but can be all `-1` placeholder (several train_v2 inputs have all-hidden JSON boards whose PGM is authoritative and differs from board). When both present with differing values, image overrides board. In training, some pairs have board equal to decoded image, others have board all-hidden and only PGM gives clues — deduce mapping from PGM pixels to cell types. Verifier will test image-only inputs.
 
 **PGM Format P2 plain**
 ```
@@ -52,13 +52,15 @@ You must deduce this mapping from train_v2 images + board JSON. Sweep all other 
   - If no consistent placement (invalid board) or no hidden → null
 - Canonical encoding: outputs checked with `sort_keys=True, separators=(',',':')` canonical JSON and sorted row-col order for safe/flags/best.
 
-**Preservation contract (multiturn core)**
-S2 output `safe` and `flags` must exactly equal S1 output when S2-specific fields equal S1-compatible values:
-- board_image_pgm absent or decodes to same board as S1 board
-- total_mines same, board same
+**Preservation contract (multiturn core) — behavioral, not import string**
+S2 output `safe` and `flags` must exactly equal S1 output (behavioral preservation) when S2-specific fields equal S1-compatible values:
+- board_image_pgm absent or decodes to same board as S1 board (or board all -1 placeholder)
+- total_mines same, board content same after PGM decode
 - deterministic safe exists (so best = first safe) OR no safe needed consistent
 
-Hidden tests: 30+30 seeds n=200 exact dict equality per seed, not mean, for preservation.
+Verified behaviorally via hidden tests 30+30 seeds n=200 exact dict equality per seed (not mean) for preservation — `test_preservation_30_30` and `test_preservation_with_best_tile`. Reuse via import of S1's `deterministic_closure` is recommended for modularity but not enforced by string grep; behavioral equality is the contract (fixes feedback about missing verifier check for import/reuse).
+
+When `board_image_pgm` present with all-hidden JSON board, PGM is authoritative and board JSON is placeholder — not equal in training, contrary to old incorrect sentence.
 
 **What you must do**
 1. Read all 8 train_v2 pairs plus compare to v1. All 8 must match exactly.
