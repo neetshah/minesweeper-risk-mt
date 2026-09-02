@@ -6,8 +6,11 @@ Generates boards from held-out seeds 710000+ (50 streams) + 30+30 preservation n
 Uses same deterministic_closure + exact enumeration as reference.
 """
 
-import random, json, fractions, itertools, os, hashlib
-from pathlib import Path
+import fractions
+import hashlib
+import itertools
+import json
+import random
 
 
 def neighbors(r, c, rows, cols):
@@ -20,7 +23,7 @@ def neighbors(r, c, rows, cols):
                 yield nr, nc
 
 
-def deterministic_closure(rows, cols, board, pre_flags):
+def deterministic_closure(rows, cols, board, pre_flags):  # noqa: C901
     safe = set()
     flags = set()
     changed = True
@@ -54,12 +57,14 @@ def deterministic_closure(rows, cols, board, pre_flags):
     return safe, flags
 
 
-def solve_board(rows, cols, total, board):
+def solve_board(rows, cols, total, board):  # noqa: C901
     pre_flags = {(r, c) for r in range(rows) for c in range(cols) if board[r][c] == "F"}
     if len(pre_flags) > total:
         return [], [], None, {}
     safe, flags = deterministic_closure(rows, cols, board, pre_flags)
     all_flags = pre_flags | flags
+    if len(all_flags) > total:
+        return [], [], None, {}
     remaining = total - len(all_flags)
     hidden_remain = [
         (r, c)
@@ -98,7 +103,7 @@ def solve_board(rows, cols, total, board):
     if not valid:
         return sorted(safe), sorted(flags), None, {}
     totalPlac = len(valid)
-    prob_counts = {h: 0 for h in hidden_remain}
+    prob_counts = dict.fromkeys(hidden_remain, 0)
     for vp in valid:
         for h in vp:
             prob_counts[h] += 1
@@ -174,7 +179,7 @@ def hash_chain(prev_hash, obj):
 # hidden generation demo
 if __name__ == "__main__":
     # generate 50 hidden S1 boards seed 710000+
-    for i, seed in enumerate(range(710000, 710050)):
+    for seed in range(710000, 710050):
         rows, cols, ms = 5, 5, 5
         board, _, _ = gen_board(seed, rows, cols, ms, 0.5)
         safe, flags, _, _ = solve_board(rows, cols, ms, board)[

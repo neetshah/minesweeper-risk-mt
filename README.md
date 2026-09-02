@@ -1,18 +1,19 @@
 # codimango/minesweeper-risk-mt
 
 ## Description with traps
-Minesweeper next-best-tile solver from board images. Step1 builds deterministic safe/flag closure engine from JSON board. Step2 extends same file to:
-- parse PGM P2 plain image (1 pixel per cell) with gray thresholds hidden 0-49 vs flag 50-99 vs numbers ranges, boundaries 49/50 and 199/200 uniquely pinned via train (T5)
-- compute exact minimal-risk tile via exhaustive consistent placement enumeration using Fraction (global total_mines coupling T7)
-- preserve S1 safe/flags under compatible inputs (preservation contract 30+30 seeds n=200 exact equality)
-- enforce deterministic order T2: safe sorted row col, best_tile minimal prob tie row col, not file order
-- canonical JSON encoding T3 with SHA256 hash chain audit (sort_keys=True, separators=(',',':'))
-- ordering T6: validation flag over cap → empty (no-retain/no-cap), flag closure before safe
+Minesweeper next-best-tile solver from board images. Step1 builds deterministic safe/flag closure engine from JSON board. Step2 extends the same file to:
+- parse PGM P2 plain image (1 pixel per cell) with gray thresholds pinned by train boundary cases
+- compute exact minimal-risk tile via exhaustive consistent placement enumeration using `Fraction` and global `total_mines` coupling
+- preserve S1 safe/flags under compatible inputs
+- enforce deterministic row/col ordering for safe tiles, flags, and probability ties
+- canonical JSON encoding with `sort_keys=True, separators=(',',':')`
+- treat input flags or deduced flags over `total_mines` as invalid empty-output cases
+- Step3 adds exact rational risk reports (`placement_count` and `risk_fractions`) when `explain_risk` is true
 
 Artifacts: `/app/project/engine.py` CLI `python3 engine.py INPUT OUTPUT` stdlib only.
 
 ## Completion rates table per commit + job IDs
-| Commit | Date | S1 5 trials Avocado | S1 Frontier (Opus/GPT/Codex) | S2 5 Avocado | S2 Frontier | Whole 2-step | Job IDs | Notes |
+| Commit | Date | S1 5 trials Avocado | S1 Frontier (Opus/GPT/Codex) | S2 5 Avocado | S2 Frontier | Whole task | Job IDs | Notes |
 |---|---|---|---|---|---|---|---|---|
 | initial scaffold 8f3a9c2e | 2026-08-25 | 3/5 (fails closure chain input_3, sort order) | Opus 5/5, GPT 5/5 | 0/5 | Opus 4/5, GPT 3/5 | 0/5 Avocado 70% frontier | - | Baseline |
 | + T5 boundary | - | 4/5 | 5/5 | 1/5 | 4/5 | 1/5 | - | Gray threshold deduction hard |

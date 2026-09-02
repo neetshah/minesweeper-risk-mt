@@ -1,5 +1,7 @@
 {
   "best_tile": null,
   "flags": [],
+  "placement_count": 0,
+  "risk_fractions": {},
   "safe": []
 }

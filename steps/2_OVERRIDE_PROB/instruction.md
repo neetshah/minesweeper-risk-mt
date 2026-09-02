@@ -37,18 +37,20 @@ You must deduce this mapping from train_v2 images + board JSON. Sweep all other 
   "safe": [[r,c],...],
   "flags": [[r,c],...],
   "best_tile": [r,c] | null,
-  "probabilities": {"r,c": float} // optional, not checked but helpful
+  "probabilities": {"r,c": float} // optional
 }
 ```
 - `safe`,`flags` same deterministic closure as S1 (preserve)
+- If you emit `probabilities`, include it only when deterministic closure yields no safe tiles, remaining hidden candidates exist, and at least one valid placement exists. When `safe` is non-empty, omit `probabilities`. Keys are `"r,c"` strings and values are JSON numbers.
 - `best_tile`:
   - If safe non-empty → `best_tile = safe[0]` (first sorted safe) → preservation contract
-  - Else if remaining hidden non-empty → compute exact mine probability via exhaustive enumeration of all placements consistent with all numbered clues + global total_mines budget (fleet coupling T7)
-  - `remaining_mines = total_mines - input_flags - deduced_flags`
-  - `hidden_remain = -1 cells not safe/flag`
-  - Enumerate all combos `hidden_remain choose remaining_mines` that satisfy every revealed number (flagged+placed == number)
+  - Else if remaining hidden non-empty → compute exact mine probability via exhaustive enumeration of all placements consistent with all numbered clues + global total_mines budget
+- `remaining_mines = total_mines - input_flags - deduced_flags`
+- If input flags plus deduced flags exceed `total_mines`, the board is invalid: return empty `safe`, empty `flags`, and `best_tile: null`.
+- `hidden_remain = -1 cells not safe/flag`
+- Enumerate all combos `hidden_remain choose remaining_mines` that satisfy every revealed number (flagged+placed == number)
   - For each hidden cell, `P(mine) = count placements where cell is mine / total placements` using Fraction exact rational
-  - Pick minimal probability, tie break row asc col asc (T2 deterministic order inference)
+  - Pick minimal probability, tie break row asc col asc
   - If no consistent placement (invalid board) or no hidden → null
 - Canonical encoding: outputs checked with `sort_keys=True, separators=(',',':')` canonical JSON and sorted row-col order for safe/flags/best.
 
@@ -58,14 +60,16 @@ S2 output `safe` and `flags` must exactly equal S1 output (behavioral preservati
 - total_mines same, board content same after PGM decode
 - deterministic safe exists (so best = first safe) OR no safe needed consistent
 
-Verified behaviorally via hidden tests 30+30 seeds n=200 exact dict equality per seed (not mean) for preservation — `test_preservation_30_30` and `test_preservation_with_best_tile`. Reuse via import of S1's `deterministic_closure` is recommended for modularity but not enforced by string grep; behavioral equality is the contract (fixes feedback about missing verifier check for import/reuse).
+Verified behaviorally via hidden preservation tests. Reuse via import of S1's `deterministic_closure` is recommended for modularity; behavioral equality is the contract.
 
-When `board_image_pgm` present with all-hidden JSON board, PGM is authoritative and board JSON is placeholder — not equal in training, contrary to old incorrect sentence.
+When `board_image_pgm` is present with an all-hidden JSON board, PGM is authoritative and the JSON board is only a placeholder.
+
+Hidden PGM tests are generated from globally consistent Minesweeper boards. If a parsed board has no global mine placement consistent with the numbered clues, preserve deterministic safe/flags when they are within the `total_mines` budget and set `best_tile` to `null`.
 
 **What you must do**
 1. Read all 8 train_v2 pairs plus compare to v1. All 8 must match exactly.
-2. Deduce: PGM parsing gray→cell mapping via sweep (only one threshold set matches all 8; train includes single-pixel-difference images flipping hidden↔flag and number↔number), image overrides board, validation when flag count > total → return empty safe/flags/best null (no-retain analog like cross-invalid no zero-earner), deterministic closure same as S1, probabilistic enumeration exact Fraction not float sampling, minimal risk selection tie row col.
-3. Extend Step1 engine. S2 must equal S1 under preservation contract - hidden tests exact equality per seed (30+30 seeds n=200).
+2. Deduce: PGM parsing gray→cell mapping via sweep (only one threshold set matches all 8; train includes single-pixel-difference images flipping hidden↔flag and number↔number), image overrides board, invalid budgets return empty safe/flags and `best_tile: null`, deterministic closure same as S1, probabilistic enumeration exact Fraction not float sampling, minimal risk selection tie row col.
+3. Extend Step1 engine. S2 must equal S1 under the preservation contract.
 4. Test against train_v2 exactly - must match including boundary boards.
 5. Keep S2 imports S1 logic via modular funcs; engine file still exists after S2; no hardcode of expected boards; no reading of `/tests`.
 

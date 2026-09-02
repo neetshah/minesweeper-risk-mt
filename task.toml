@@ -6,7 +6,7 @@ source_commit = "92d1328"
 
 [task]
 name = "codimango/minesweeper-risk-mt"
-description = "Two-turn minesweeper solver: Step1 builds deterministic safe/flag engine from board JSON, Step2 overrides to add PGM image board parsing + exact minimal-risk tile via global CSP enumeration preserving every Step1 rule. Graded on hidden boards from held-out seeds 710k+."
+description = "Multi-turn minesweeper solver: Step1 builds deterministic safe/flag engine from board JSON, Step2 adds PGM image parsing and exact minimal-risk tile selection, and Step3 adds exact rational risk reports. Graded on held-out generated boards."
 authors = [{ name = "Minesweeper Team", email = "team@meta.com" }]
 keywords = ["python", "games_and_simulation", "multimedia_and_signal_processing", "multi-turn"]
 format = "terminal_bench_multi_turn"
@@ -42,6 +42,15 @@ timeout_sec = 900.0
 [[steps]]
 name = "2_OVERRIDE_PROB"
 dependencies = ["1_BUILD_CORE"]
+min_reward = 1.0
+inherit_prior_session = true
+[steps.verifier]
+timeout_sec = 300.0
+[steps.agent]
+timeout_sec = 900.0
+[[steps]]
+name = "3_RISK_REPORT"
+dependencies = ["2_OVERRIDE_PROB"]
 min_reward = 1.0
 inherit_prior_session = true
 [steps.verifier]

@@ -1,0 +1,18 @@
+{
+  "board": [
+    [
+      1,
+      -1,
+      -1
+    ],
+    [
+      1,
+      -1,
+      -1
+    ]
+  ],
+  "cols": 3,
+  "explain_risk": true,
+  "rows": 2,
+  "total_mines": 1
+}

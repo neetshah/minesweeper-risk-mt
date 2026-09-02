@@ -33,9 +33,9 @@ Reads JSON, writes JSON. Stdlib only, deterministic.
 - `flags`: hidden cells proven to be mines (new deductions, not including input "F"). Sorted asc row col.
 - No `best_tile` in Step1.
 
-**Business rules are defined by example in `/app/project/train/` (8 pairs S1) and `/app/project/train_v2/` (8 pairs S2, intentionally visible from start for forward-compatibility).** S1 train covers deterministic closure, ordering, zero-reveal. S1 hidden grading also includes validation case `count(input "F") > total_mines` → empty safe/flags (invalid board, no retention). That rule is explicitly stated here and demonstrated in train_v2 pair 8 and added S1 pair 9 — ideal to do both per quality feedback.
+**Business rules are defined by example in `/app/project/train/` (S1 pairs) and `/app/project/train_v2/` (S2 pairs, intentionally visible from start for forward compatibility).** S1 train covers deterministic closure, ordering, zero-reveal, and invalid mine budgets. If `count(input "F") > total_mines`, return empty safe/flags.
 
-This is Step1 of two-turn task. Keep code clean modular (e.g. `parse_board, neighbors, deterministic_closure, deduce_safe, deduce_flags`) — Step2 will add PGM image board parsing + probabilistic minimal-risk best tile using exact CSP enumeration, but must reuse every piece you deduce now and preserve S1 output under compatible boards.
+This is Step1 of a multi-turn task. Keep code clean and modular (for example, `parse_board`, `neighbors`, `deterministic_closure`, `deduce_safe`, `deduce_flags`). Later steps add PGM image board parsing, probabilistic minimal-risk best tile selection, and exact risk reporting while preserving S1 output under compatible boards.
 
 **Output format (canonical)**
 - Engine must write JSON with `sort_keys=True, separators=(',',':'), ensure_ascii=False` — canonical encoding enforced by verifier. Example: `{"flags":[],"safe":[[0,1]]}` not `{"flags": [], "safe": [[0, 1]]}`.
@@ -43,9 +43,9 @@ This is Step1 of two-turn task. Keep code clean modular (e.g. `parse_board, neig
 **Multi-turn artifact**
 - S1 creates `engine.py` with `deterministic_closure`. S2 will inherit this via `inherit_prior_session=true` and should reuse `deterministic_closure` via import for preservation (behavioral contract verified by 30+30 seeds exact equality, not string import check). The only required artifact is `/app/project/engine.py`.
 
-**Validation explicit (fixes R01/R02/R03 BAD_AMBIGUOUS):**
+**Validation**
 - If `count(cell == "F" in board) > total_mines` → invalid board → return `{"safe":[],"flags":[]}` empty (no retention, no best_tile in S1). This is required and checked by `test_zero_reveal_and_invalid_budget` and new train pair 9.
-- `total_mines` global budget couples all hidden cells; flags (input F + deduced) must not exceed total else invalid.
+- `total_mines` is a hard budget: flags (input F + deduced) must not exceed total. If deterministic closure would infer more flags than the budget allows, return `{"safe":[],"flags":[]}` instead of partial deductions.
 - Some boards have no deterministic safe/flag → empty lists (valid).
 
 ## What you know without reading train
@@ -55,7 +55,7 @@ This is Step1 of two-turn task. Keep code clean modular (e.g. `parse_board, neig
 - Business rules partially in train, partially explicitly stated here for invalid case
 
 ## What you must do
-1. Read ALL train pairs in `/app/project/train/` (8 pairs) + `/app/project/train_v2/` (8 pairs intentionally visible from start — forward-compatible allowance). Full validation semantics (including invalid flag budget) are visible across both sets, plus explicit statement above.
+1. Read all train pairs in `/app/project/train/` and `/app/project/train_v2/`. Full validation semantics, including invalid mine budgets, are visible across both sets plus the explicit statement above.
 2. Deduce hidden rules via sweep: only one interpretation matches all pairs (validation semantics flag>total → empty, ordering sorted row-col, chain dependencies requiring fixed-point, budget handling).
 3. Write engine that matches train exactly and will generalize to hidden boards from same distribution but different seeds. Use only stdlib. Must handle invalid case explicitly.
 4. Keep code modular with functions like `neighbors`, `deterministic_closure` — Step2 will import and extend this file, verified behaviorally via preservation tests (not import string check).

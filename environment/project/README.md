@@ -1,10 +1,9 @@
 # Minesweeper Risk MT - Project Overview
-This directory contains public training data. Hidden grading uses fresh boards from held-out seeds 710k+.
+This directory contains public training data. Hidden grading uses fresh boards from held-out seeds.
 
-## Notes for task authoring (do NOT include in final instruction.md)
-Image mapping thresholds are pinned by train_v2 boundary PGMs. Do not leak exact gray ranges in task instruction - let model deduce from examples.
+## Training Data
+`train/` covers deterministic JSON-board deduction. `train_v2/` adds PGM board decoding and best-tile selection. `train_v3/` adds exact rational risk reports.
 
 ## Engine path
 Implement `/app/project/engine.py` CLI: `python3 /app/project/engine.py INPUT_JSON OUTPUT_JSON`
-Stdlib only, deterministic, sorted keys. Output will be checked with canonical JSON `sort_keys=True, separators=(',',':')` for hash chain.
-
+Stdlib only, deterministic, sorted keys. Output is checked with canonical JSON `sort_keys=True, separators=(',',':')`.

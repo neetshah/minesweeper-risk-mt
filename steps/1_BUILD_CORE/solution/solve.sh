@@ -65,6 +65,11 @@ def main():
             json.dump(res,out, sort_keys=True, separators=(',',':'))
         return
     safe, flags = deterministic_closure(rows, cols, board, pre_flags)
+    if len(pre_flags) + len(flags) > total:
+        res={"safe":[],"flags":[]}
+        with open(outp,"w") as out:
+            json.dump(res,out, sort_keys=True, separators=(',',':'))
+        return
     res={"safe":[list(x) for x in sorted(safe)],"flags":[list(x) for x in sorted(flags)]}
     with open(outp,"w") as out:
         json.dump(res,out, sort_keys=True, separators=(',',':'))

@@ -2,7 +2,7 @@
 # CANARY GUID: minesweeper-risk-mt-8f3a9c2e-7b1d-4f2a-9c3e-1a2b3c4d5e6f
 set -e
 PROJECT_DIR=/app/project
-# Multi-turn coupling: require S1 artifact and preserve its logic via import, not wholesale overwrite (fixes 4A signals)
+# Preserve the Step1 artifact so the final engine can reuse its deterministic logic.
 if [ -f $PROJECT_DIR/engine.py ]; then
   cp $PROJECT_DIR/engine.py $PROJECT_DIR/engine_s1.py
   echo "Preserved S1 engine as engine_s1.py for import coupling"
@@ -17,7 +17,7 @@ import sys, json, os
 from fractions import Fraction
 from itertools import combinations
 
-# Reuse S1 deterministic closure via import if available (real coupling, not decorative)
+# Reuse S1 deterministic closure via import if available.
 try:
     import engine_s1 as s1
     neighbors = s1.neighbors
@@ -104,6 +104,8 @@ def solve_board(rows, cols, total, board):
         return [], [], None, {}
     safe, flags = deterministic_closure(rows, cols, board, pre_flags)
     all_flags=pre_flags|flags
+    if len(all_flags)>total:
+        return [], [], None, {}
     remaining=total-len(all_flags)
     hidden_remain=[(r,c) for r in range(rows) for c in range(cols) if board[r][c]==-1 and (r,c) not in safe and (r,c) not in all_flags]
     if safe:
