@@ -1,4 +1,9 @@
 schema_version = "1.1"
+[provenance]
+origin = "original"
+source_repo = "https://github.com/neetshah/minesweeper-risk-mt"
+source_commit = "92d1328"
+
 [task]
 name = "codimango/minesweeper-risk-mt"
 description = "Two-turn minesweeper solver: Step1 builds deterministic safe/flag engine from board JSON, Step2 overrides to add PGM image board parsing + exact minimal-risk tile via global CSP enumeration preserving every Step1 rule. Graded on hidden boards from held-out seeds 710k+."
