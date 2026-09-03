@@ -15,7 +15,7 @@ Turn images of minesweeper boards + structured board JSON into next best tile to
 - S2 adds optional `board_image_pgm` P2 plain PGM path; when present image is ground truth
 - Output S1 `{"safe":[[r,c]],"flags":[[r,c]]}` sorted row asc col asc
 - Output S2 adds `best_tile` + optional probabilities, same safe/flags preserved
-- Output S3 adds `placement_count` and `risk_fractions` only when `explain_risk` is true; in that mode omit the Step2 float `probabilities` key
+- Output S3 adds `placement_count` and `risk_fractions` only when `explain_risk` is true
 - Business rules are shown by the pairs in `/app/project/train/`, `/app/project/train_v2/`, and `/app/project/train_v3`; deduce the missing image thresholds from those examples
 
 **Build→Extend shape**
