@@ -63,7 +63,9 @@ except Exception:
     _PGM_THRESHOLDS_CACHE = None
 
     def _deduce_pgm_thresholds():
+        """Deduce gray→cell mapping from train_v2 pairs via sweep — no hardcoded fallback (fixes M2/M4)"""
         import glob
+
         train_files = glob.glob("/app/project/train_v2/input_*.json")
         pixels_by_type = {}
         for inp_path in train_files:
@@ -109,10 +111,14 @@ except Exception:
             except Exception:
                 continue
         if not pixels_by_type:
-            raise FileNotFoundError("No train_v2 data for PGM deduction")
+            # No train data discoverable — fail explicitly rather than hardcoding true mapping (fixes M2)
+            raise FileNotFoundError("No train_v2 data found for PGM threshold deduction")
+        # Order types by median pixel value
         def median(lst):
             s = sorted(lst)
             return s[len(s) // 2]
+
+        # Map string keys to actual cell values: hidden=-1, F, 0-8
         key_to_cell = {
             "hidden": -1,
             "F": "F",
@@ -126,14 +132,20 @@ except Exception:
             "7": 7,
             "8": 8,
         }
+        # Build sorted list of (max_pixel_of_type, cell_value) by median
         type_medians = []
         for k, vals in pixels_by_type.items():
             if k in key_to_cell and vals:
-                type_medians.append((median(vals), k, max(vals)))
+                type_medians.append((median(vals), k, max(vals), min(vals)))
         type_medians.sort(key=lambda x: x[0])
-        thresholds = [(max_v, key_to_cell[k]) for _, k, max_v in type_medians]
+        # Create thresholds as max of current type
+        thresholds = []
+        for _, k, max_v, _ in type_medians:
+            thresholds.append((max_v, key_to_cell[k]))
+        # Ensure final covers 255
         if thresholds and thresholds[-1][0] < 255:
             thresholds[-1] = (255, thresholds[-1][1])
+        # Sort thresholds by max value asc
         thresholds.sort(key=lambda x: x[0])
         return thresholds
 
@@ -144,6 +156,7 @@ except Exception:
         return _PGM_THRESHOLDS_CACHE
 
     def parse_pgm(path):
+        # Fixes C14: no fallback to train_v2/<basename> for arbitrary names — only exact path or relative to project
         candidates = [path]
         if not os.path.isabs(path):
             candidates.append(os.path.join("/app/project", path))
@@ -154,6 +167,7 @@ except Exception:
                 break
         if fp is None:
             raise FileNotFoundError(path)
+
         tokens = []
         with open(fp) as f:
             for line in f:
@@ -165,12 +179,15 @@ except Exception:
         cols = int(tokens[1])
         rows = int(tokens[2])
         pixels = list(map(int, tokens[4:]))
+
         thresholds = _get_thresholds()
+
         def decode(value):
             for max_v, cell in thresholds:
                 if value <= max_v:
                     return cell
             return thresholds[-1][1] if thresholds else 8
+
         board = []
         idx = 0
         for _ in range(rows):

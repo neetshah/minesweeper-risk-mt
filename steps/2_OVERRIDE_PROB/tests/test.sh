@@ -19,18 +19,7 @@ rm -rf /app/.pytest_cache /tmp/.pytest_cache 2>/dev/null || true
 export PYTHONNOUSERSITE=1
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPATH=""
-echo "Anti-cheat S2 precise"
-if [ -f /app/project/engine.py ]; then
-  if grep -q "_dgp" /app/project/engine.py; then echo "ZERO REWARD _dgp"; exit 1; fi
-  if grep -q "test_outputs" /app/project/engine.py; then echo "ZERO REWARD test_outputs"; exit 1; fi
-  if grep -q "__verifier" /app/project/engine.py; then echo "ZERO REWARD __verifier"; exit 1; fi
-  # only quoted filesystem paths are cheating, not bare words in comments - fix for false rejects
-  if grep -q '"/tests' /app/project/engine.py; then echo "ZERO REWARD quoted /tests"; exit 1; fi
-  if grep -q "'/tests" /app/project/engine.py; then echo "ZERO REWARD quoted /tests"; exit 1; fi
-  if grep -q "/logs/verifier" /app/project/engine.py; then echo "ZERO REWARD /logs/verifier"; exit 1; fi
-  # precise copyfile bypass: only literal copy of output files
-  if grep -q "shutil.copyfile" /app/project/engine.py && grep -q "output_" /app/project/engine.py; then echo "ZERO REWARD copyfile bypass"; exit 1; fi
-fi
+echo "Anti-cheat: filesystem isolation via chmod 700 /tests in Dockerfile + privilege drop, no brittle grep (fixes C7)"
 
 set +e
 python3 -I -m pytest -c /dev/null -o "addopts=" -o "cache_dir=/tmp/pytest_cache" --rootdir=/tests --override-ini="pythonpath=" --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA -v 2>&1 | tail -n 300
