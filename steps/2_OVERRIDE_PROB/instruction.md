@@ -27,7 +27,7 @@ cols rows
 255
 pixel0 pixel1 ...
 ```
-Each pixel corresponds to one board cell (rows x cols). Gray value mapping to cell type must be deduced from train_v2 examples - do not hardcode guessed ranges. Train includes boundary cases that uniquely pin every hidden constant via sweep verification (only one threshold assignment matches all 8). For example, train contains images where a single-pixel difference flips hidden↔flag and 4↔5 - deduce which value maps to which type by comparing PGM pixels to paired JSON boards.
+Each pixel corresponds to one board cell (rows x cols). Per the P2 spec, `#` comments may appear anywhere whitespace is allowed, including trailing on header and pixel lines — strip them before tokenizing. Gray value mapping to cell type must be deduced from train_v2 examples - do not hardcode guessed ranges. Train includes boundary cases that uniquely pin every hidden constant via sweep verification (only one threshold assignment matches all 8). For example, train contains images where a single-pixel difference flips hidden↔flag and 4↔5 - deduce which value maps to which type by comparing PGM pixels to paired JSON boards.
 
 You must deduce this mapping from train_v2 images + board JSON. Sweep all other thresholds fails at least one train pair.
 
