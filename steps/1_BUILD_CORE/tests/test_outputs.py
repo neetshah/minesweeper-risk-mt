@@ -404,6 +404,78 @@ def test_chain_closure_requires_fixed_point():  # noqa: C901
     assert got.get("flags") == exp_flags, "chain board flags needs fixed-point"
 
 
+def test_hidden_seeds_5x5_budget_coupling():
+    """Larger boards with tighter budgets: fixed-point closure must interact
+    with the global mine budget. Single-pass or budget-agnostic engines fail
+    here while the reference passes. Same held-out-seed family as
+    test_hidden_seeds_50 (seeds 710200+, independent ref impl)."""
+
+    def gen_board(seed, rows=5, cols=5, mines=4, reveal=0.45):
+        random.seed(seed)
+        all_cells = [(r, c) for r in range(rows) for c in range(cols)]
+        mine_cells = set(random.sample(all_cells, mines))
+        full = [[0] * cols for _ in range(rows)]
+        for r, c in all_cells:
+            if (r, c) in mine_cells:
+                full[r][c] = "M"
+            else:
+                cnt = sum(
+                    1
+                    for nr, nc in ref_neighbors(r, c, rows, cols)
+                    if (nr, nc) in mine_cells
+                )
+                full[r][c] = cnt
+        board = [[-1] * cols for _ in range(rows)]
+        for r in range(rows):
+            for c in range(cols):
+                if random.random() < reveal and full[r][c] != "M":
+                    board[r][c] = full[r][c]
+                else:
+                    board[r][c] = -1
+        has = any(
+            isinstance(board[r][c], int) for r in range(rows) for c in range(cols)
+        )
+        if not has:
+            cands = [
+                (r, c) for r in range(rows) for c in range(cols) if full[r][c] != "M"
+            ]
+            if cands:
+                r, c = random.choice(cands)
+                board[r][c] = full[r][c]
+        return board
+
+    for seed in range(710200, 710230):  # 30 hidden 5x5
+        rows = cols = 5
+        total = 4
+        board = gen_board(seed, rows, cols, total, 0.45)
+        inp = {"rows": rows, "cols": cols, "total_mines": total, "board": board}
+        got = run_engine(inp)
+        exp_safe, exp_flags = ref_solve_s1(rows, cols, total, board)
+        assert sorted([list(x) for x in got.get("safe", [])]) == sorted(
+            [list(x) for x in exp_safe]
+        ), f"hidden 5x5 seed {seed} safe"
+        assert sorted([list(x) for x in got.get("flags", [])]) == sorted(
+            [list(x) for x in exp_flags]
+        ), f"hidden 5x5 seed {seed} flags"
+
+
+def test_deduced_flags_over_budget_multi_clue():
+    """Deduced (not just input) flags count against the budget. Here input
+    flags alone fit the budget, but fixed-point closure infers 2 more flags
+    for a total of 4 > 3, so the board is invalid and the engine must return
+    empty instead of partial deductions."""
+    board = [
+        [-1, -1, -1, "F"],
+        [3, 1, 1, -1],
+        ["F", 2, 0, -1],
+    ]
+    got = run_engine({"rows": 3, "cols": 4, "total_mines": 3, "board": board})
+    assert got.get("safe") == [] and got.get("flags") == [], (
+        "input F (2) + deduced flags (2) exceeds total 3: must return empty, "
+        f"got safe={got.get('safe')} flags={got.get('flags')}"
+    )
+
+
 def test_zero_reveal_and_invalid_budget():
     """0 clue reveals neighbors safe, invalid flag budget returns empty"""
     # 0 clue
