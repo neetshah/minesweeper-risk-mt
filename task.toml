@@ -1,8 +1,8 @@
 schema_version = "1.1"
 [provenance]
 origin = "original"
-source_repo = "https://github.com/neetshah/minesweeper-risk-mt"
-source_commit = "92d1328"
+source_repo = "https://github.com/codimango/neet-tbench"
+source_commit = "d455f6a"
 
 [task]
 name = "codimango/minesweeper-risk-mt"
@@ -11,6 +11,7 @@ authors = [{ name = "Minesweeper Team", email = "team@meta.com" }]
 keywords = ["python", "games_and_simulation", "multimedia_and_signal_processing", "multi-turn"]
 format = "terminal_bench_multi_turn"
 workstream = "swe_public_repo"
+track_assignment = "t-bench-multi-turn"
 [metadata]
 author_name = "Minesweeper Team"
 author_email = "team@meta.com"
