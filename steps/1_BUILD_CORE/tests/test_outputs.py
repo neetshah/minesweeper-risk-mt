@@ -229,6 +229,37 @@ def test_no_s2_artifacts():
     assert "best_tile" not in got, (
         "S1 must not output best_tile before the probabilistic step"
     )
+    # Probabilistic board (no deterministic safe; an S2 engine would emit
+    # best [0, 0]): S1 must still not emit the key.
+    prob_inp = {"rows": 2, "cols": 2, "total_mines": 1, "board": [[-1, -1], [-1, -1]]}
+    got_prob = run_engine(prob_inp)
+    assert "best_tile" not in got_prob, (
+        "S1 must not output best_tile even when no deterministic safe exists"
+    )
+    # PGM-field ignorance: an S1 engine must not decode board_image_pgm.
+    # The decoy PGM decodes (under the true band table) to an all-zero 2x2
+    # board, which solves differently from the JSON board above. An engine
+    # that decodes the image returns different output (or crashes on the
+    # unknown field); a faithful S1 engine ignores it and returns identical
+    # output. Purely behavioral, so comments/docstrings can't false-positive.
+    with tempfile.TemporaryDirectory() as pgm_td:
+        try:
+            os.chmod(pgm_td, 0o777)
+        except OSError:
+            pass
+        pgm_path = os.path.join(pgm_td, "decoy.pgm")
+        with open(pgm_path, "w") as f:
+            f.write("P2\n2 2\n255\n110 110\n110 110\n")
+        try:
+            os.chmod(pgm_path, 0o666)
+        except OSError:
+            pass
+        json_only = run_engine(sample_inp)
+        with_image = run_engine(dict(sample_inp, board_image_pgm=pgm_path))
+    assert with_image == json_only, (
+        "S1 must ignore board_image_pgm (MC2 over-execution: engine decodes "
+        f"images during step 1): {with_image} vs {json_only}"
+    )
 
 
 def test_anti_cheat():
