@@ -1,4 +1,4 @@
-# Task — Step2 Override to Probabilistic Best-Tile + PGM Image Parsing (strongly dependent, example-driven)
+# Task — Step2 Override to Probabilistic Best-Tile + PGM Image Parsing + Exact Risk Report (strongly dependent, example-driven)
 
 That deterministic engine you shipped in Step1? It leaves money on the table when no guaranteed safe exists. Need minimal risk guess + image input support.
 
@@ -15,7 +15,8 @@ Reads JSON now with extra field `board_image_pgm` optional path to P2 plain PGM 
   "cols": int,
   "total_mines": int,
   "board": [[cell]],         // may be present, may be all -1 if image only
-  "board_image_pgm": "train_v2/board_*.pgm"  // optional relative or absolute path
+  "board_image_pgm": "train_v2/board_*.pgm",  // optional relative or absolute path
+  "explain_risk": true  // optional: include exact risk report (see below)
 }
 ```
 If `board_image_pgm` present, engine must open PGM and decode board state — **PGM is authoritative ground truth**. The JSON `board` field may be present but can be all `-1` placeholder (several train_v2 inputs have all-hidden JSON boards whose PGM is authoritative and differs from board). When both present with differing values, image overrides board. In training, some pairs have board equal to decoded image, others have board all-hidden and only PGM gives clues — deduce mapping from PGM pixels to cell types. Verifier will test image-only inputs.
@@ -37,21 +38,24 @@ You must deduce this mapping from train_v2 images + board JSON. Sweep all other 
   "safe": [[r,c],...],
   "flags": [[r,c],...],
   "best_tile": [r,c] | null,
-  "probabilities": {"r,c": float} // optional
+  "probabilities": {"r,c": float}, // optional
+  "placement_count": int,          // only when explain_risk true
+  "risk_fractions": {"r,c": "n/d"} // only when explain_risk true
 }
 ```
 - `safe`,`flags` same deterministic closure as S1 (preserve)
 - If you emit `probabilities`, include it only when deterministic closure yields no safe tiles, remaining hidden candidates exist, and at least one valid placement exists. When `safe` is non-empty, omit `probabilities`. Keys are `"r,c"` strings and values are JSON numbers.
 - `best_tile`:
   - If safe non-empty → `best_tile = safe[0]` (first sorted safe) → preservation contract
-  - Else if remaining hidden non-empty → compute exact mine probability via exhaustive enumeration of all placements consistent with all numbered clues + global total_mines budget
-- `remaining_mines = total_mines - input_flags - deduced_flags`
+  - Else if remaining hidden non-empty → best_tile is the hidden cell with the
+    exact lowest mine probability across all placements consistent with all
+    numbered clues + global total_mines budget
 - If input flags plus deduced flags exceed `total_mines`, the board is invalid: return empty `safe`, empty `flags`, and `best_tile: null`.
-- `hidden_remain = -1 cells not safe/flag`
-- Enumerate all combos `hidden_remain choose remaining_mines` that satisfy every revealed number (flagged+placed == number)
-  - For each hidden cell, `P(mine) = count placements where cell is mine / total placements` using Fraction exact rational
-  - Pick minimal probability, tie break row asc col asc
-  - If no consistent placement (invalid board) or no hidden → null
+- Remaining hidden candidates are `-1` cells that are neither safe nor flags.
+  Enumerate the placements that satisfy every revealed number; for each hidden
+  cell, `P(mine)` is its mine count across placements over total placements,
+  exactly (ties broken by row asc col asc). If no consistent placement
+  (invalid board) or no hidden → null
 - Canonical encoding: outputs checked with `sort_keys=True, separators=(',',':')` canonical JSON and sorted row-col order for safe/flags/best.
 
 **Preservation contract (multiturn core) — behavioral, not import string**
@@ -68,9 +72,13 @@ Hidden PGM tests are generated from globally consistent Minesweeper boards. If a
 
 **What you must do**
 1. Read all 8 train_v2 pairs plus compare to v1. All 8 must match exactly.
-2. Deduce: PGM parsing gray→cell mapping via sweep (only one threshold set matches all 8; train includes single-pixel-difference images flipping hidden↔flag and number↔number), image overrides board, invalid budgets return empty safe/flags and `best_tile: null`, deterministic closure same as S1, probabilistic enumeration exact Fraction not float sampling, minimal risk selection tie row col.
+   Read `/app/project/train_v3/` for the risk-report examples below.
+2. Deduce the PGM gray→cell mapping from the 8 train_v2 pairs (all must match
+   exactly, including boundary boards); keep invalid-budget behavior returning
+   empty safe/flags and `best_tile: null`; keep deterministic closure as S1;
+   select minimal risk with row-col tie-break.
 3. Extend Step1 engine. S2 must equal S1 under the preservation contract.
-4. Test against train_v2 exactly - must match including boundary boards.
+4. Test against train_v2 and train_v3 exactly - must match including boundary boards.
 5. Keep S2 imports S1 logic via modular funcs; engine file still exists after S2; no hardcode of expected boards; no reading of `/tests`.
 
 **Hints for deduction**
@@ -80,6 +88,28 @@ Hidden PGM tests are generated from globally consistent Minesweeper boards. If a
 - Global coupling: clue restricts mine to subset of hidden, far cells prob 0 minimal → best is far cell, not neighbor of clue. Proves whole board coupled via total_mines.
 - Preservation: board with deterministic safe exists → best = safe[0]
 - Invalid: flag count > total → empty output no retention
+
+**Opt-in risk report (`explain_risk: true`)**
+
+When input JSON contains `"explain_risk": true`, include two additional output
+keys. All Step2 behavior (`safe`, `flags`, `best_tile`) is exactly unchanged.
+
+- `placement_count` is the number of global mine placements consistent with all
+  revealed clues, input flags, deduced flags, and `total_mines`.
+- `risk_fractions` maps every remaining hidden candidate tile to its exact mine
+  probability across those placements, encoded as a reduced rational string.
+  Use `"0"` and `"1"` for whole numbers, `"n/d"` for proper fractions
+  (`"1/3"`, never `"2/6"`).
+- If deterministic safe tiles exist, `best_tile` is still the first safe tile
+  and the risk report is empty: `placement_count: 0`, `risk_fractions: {}`.
+- If input flags (plus deduced flags) exceed `total_mines`, return empty
+  safe/flags, `best_tile: null`, `placement_count: 0`, `risk_fractions: {}`.
+- If no globally consistent placement exists, keep in-budget deterministic
+  safe/flags, set `best_tile: null`, `placement_count: 0`, `risk_fractions: {}`.
+- Without `"explain_risk": true`, do not add `placement_count` or
+  `risk_fractions`; Step2 output shape remains valid.
+- If `board_image_pgm` is present, decode and solve that PGM board exactly as
+  above, including when the JSON `board` is all hidden.
 
 **Stdlib only, no PIL, no numpy. Parse PGM plain P2 via open(). Use itertools.combinations + Fraction.**
 

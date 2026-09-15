@@ -260,6 +260,16 @@ def test_no_s2_artifacts():
         "S1 must ignore board_image_pgm (MC2 over-execution: engine decodes "
         f"images during step 1): {with_image} vs {json_only}"
     )
+    # Merged-step shape: S1 must emit none of the later-step keys —
+    # neither best_tile (above) nor the risk-report keys. Same behavioral
+    # rationale, no source scanning.
+    for output in (got, got_prob, with_image):
+        assert "placement_count" not in output, (
+            "S1 must not output placement_count before the risk step"
+        )
+        assert "risk_fractions" not in output, (
+            "S1 must not output risk_fractions before the risk step"
+        )
 
 
 def test_anti_cheat():
