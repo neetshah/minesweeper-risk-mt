@@ -20,6 +20,8 @@ Artifact: `/app/project/engine.py` CLI `python3 engine.py INPUT OUTPUT` stdlib o
   `test_exact_reducible_fractions` gcd>1, `test_safe_exists_explain_empty_report`,
   `test_canonical_risk_report`, `test_legacy_output_shape_without_explain_flag`,
   PGM+risk combos, `test_hidden_consistent_reports` 20 seeds ref_solve match.
+  `solution/smoke_test.sh` runs the top-level golden over the inline-comment
+  PGM contract + no-silent-fallback rule (CI-runnable, no docker).
 
 **Performance constraint:** Hidden grading boards constrained to rows≤5 cols≤5 hidden≤12 remaining mines ≤4 placements ≤500 to keep exact enumeration feasible in 15s timeout. Documented in instruction.md fixes combinatorial explosion review.
 

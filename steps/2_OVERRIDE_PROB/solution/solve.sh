@@ -231,12 +231,10 @@ def main():
     rows=data["rows"]; cols=data["cols"]; total=data["total_mines"]
     board=data.get("board")
     if "board_image_pgm" in data:
-        try:
-            board=parse_pgm(data["board_image_pgm"])
-            rows=len(board); cols=len(board[0])
-        except Exception:
-            if board is None:
-                raise
+        # PGM is authoritative ground truth: a present-but-unparseable image
+        # is an error, never a signal to silently solve the JSON board.
+        board=parse_pgm(data["board_image_pgm"])
+        rows=len(board); cols=len(board[0])
     explain_risk=bool(data.get("explain_risk"))
     if board is None:
         result={"safe":[],"flags":[],"best_tile":None}
