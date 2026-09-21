@@ -44,9 +44,8 @@ Turn images of minesweeper boards + structured board JSON into next best tile to
 - S2: 0-70% Avocado (needs threshold deduction + minimal-risk reasoning + tie-break + exact fractions), Opus 80% S1 70% whole
 
 ## Performance and hidden board constraints (fixes combinatorial explosion Medium)
-- Global enumeration uses `itertools.combinations(hidden, remaining)` for exact minimal risk. For modest 40-hidden/10-mine board this is ~847M placements infeasible in 15s subprocess timeout.
-- Hidden grading boards are constrained to small sizes to keep exact enumeration feasible: rows<=5, cols<=5, hidden cells after deterministic closure <=12, remaining mines after flags <=4, total placements per board <= ~500. This is documented behavioral constraint, not leaked in earlier versions.
-- Train examples are similarly small (2x2 to 4x4, 1-3 mines). Agents should implement exact enumeration with early pruning via clue consistency, not float sampling, and will pass within timeout on hidden grading.
+- Exact minimal risk requires enumerating placements consistent with all clues. Hidden grading boards go up to 6x6 with 7 mines (~30 hidden cells after deterministic closure, ~1.5M raw combinations, exact placement counts into the millions): unpruned generate-and-filter does not finish in the 15s subprocess budget. Agents must implement exact enumeration with early pruning via clue consistency (assign constrained cells first, abort any branch that over-satisfies a clue or leaves one unsatisfiable), not float sampling; pruned search completes in well under a second. This is documented behavioral constraint, not leaked in earlier versions.
+- Train examples are small (2x2 to 4x4, 1-3 mines) and do not demonstrate grading scale. Hidden grading uses larger boards as specified above; exactness (best_tile, placement_count, reduced risk_fractions) is still required at that scale.
 
 ## Anti-cheating
 - Hidden grading uses fresh generated boards from held-out seeds 710k+ (not just train fixtures), unprivileged subprocess (chmod 700 /tests in Dockerfile + setpriv drop), canonical encoding check. No broad source grep for implementation details — behavioral checks only via preservation 30+30 seeds exact equality.
