@@ -14,12 +14,14 @@ Artifact: `/app/project/engine.py` CLI `python3 engine.py INPUT OUTPUT` stdlib o
 
 ## Tests Description
 - **S1 tests 10:** `test_module_exists`, `test_train_exact_match` 9 pairs including invalid pair 9, `test_canonical_json_bytes_s1` no spaces, `test_sorted_order`, `test_no_s2_artifacts` behavioral no PGM/best/prob/risk after S1, `test_anti_cheat` removed brittle grep per C7 (rely on chmod 700 + setpriv), `test_baseline_bar` flat <0.90 BAR, `test_hidden_seeds_50` 710000-710050 random boards 4x4 mines 3 reveal 0.5 exact match ref, `test_chain_closure_requires_fixed_point` multi-iteration chain, `test_zero_reveal_and_invalid_budget` 0 clue + flag>total.
-- **S2 tests 28 (merged, was 13+7):** everything below in one suite —
+- **S2 tests 29 (merged 2-step):** everything below in one suite —
   PGM/threshold/enumeration/preservation/tie/coupling/invalid/canonical plus
   `test_train_v3_exact` 3 pairs, `test_exact_thirds` 1/3 fractions,
   `test_exact_reducible_fractions` gcd>1, `test_safe_exists_explain_empty_report`,
   `test_canonical_risk_report`, `test_legacy_output_shape_without_explain_flag`,
-  PGM+risk combos, `test_hidden_consistent_reports` 20 seeds ref_solve match.
+  PGM+risk combos, `test_hidden_consistent_reports` 20 seeds ref_solve match,
+  `test_hidden_pgm_boundary_edges` 20 seeds edge-only pixels ({lo,lo+1,hi-1,hi}
+  per true band; off-by-one hardcoded thresholds fail, exact deduction passes).
   `solution/smoke_test.sh` runs the top-level golden over the inline-comment
   PGM contract + no-silent-fallback rule (CI-runnable, no docker).
 
@@ -34,9 +36,10 @@ Artifact: `/app/project/engine.py` CLI `python3 engine.py INPUT OUTPUT` stdlib o
 | +T5 boundary | - | 4/5 | 5/5 | 1/5 | 4/5 | 1/5 | - | PGM threshold hard |
 | +T7 coupling | - | 4/5 | 5/5 | 0/5 | 3/5 | 0/5 | - | Global budget |
 | +S3 risk | 2026-09-02 | 4/5 fails invalid/chain | Opus 5/5 | 1/5 fails enumeration | Opus 3/5 | 1/5 Avocado 60% frontier | 2026-09-02__12-29-38 oracle 1.0 S1 10 S2 13 S3 7 | GOOD sweet spot |
+| Merge S2+S3, edge test | 2026-09-21 | Avocado 0.4 | Opus 0.4 GPT 1.0 | Avocado 0.6 | Opus 1.0 GPT 1.0 | oracle 3/3 | 82ad1792 | GOOD (2-step: S1 + merged S2 both discriminate) |
 | Final GOOD target | - | 2/5 Avocado in-window per quality bar ≥1 fail + ≥1 frontier pass per step | 5/5 frontier | 0-1/5 Avocado | 3-4/5 frontier | 2/5 Avocado (37% aggregate) | - | Matches compatibility-matcher 37% GOOD |
 
-Aggregate: Avocado 2/5 overall GOOD, frontier spread Opus 9/10 GPT 10/10 Avocado 3/10 → 37% mean GOOD, not 10/10 too easy nor 0/5 unsolvable.
+Aggregate: Avocado S1 0.4 / S2 0.6, Opus S1 0.4 / S2 1.0, GPT 1.0 both steps, oracle 3/3 → GOOD. Both steps meet ≥1 fail + ≥1 frontier pass; no exempt step in the 2-step layout.
 
 ## Model Analysis with Trial IDs and Dominant Failure Modes
 | Mode | Count | Reasoning gap | Example trial |
@@ -45,13 +48,14 @@ Aggregate: Avocado 2/5 overall GOOD, frontier spread Opus 9/10 GPT 10/10 Avocado
 | Avocado S1 fails invalid budget T6 | 2/5 | Returns partial safe/flags not empty when F>total or deduced>total | test_zero_reveal_and_invalid_budget |
 | Avocado S1 fails sorted order T2 | 1/5 | Returns file/input order not row asc col asc | sorted_order |
 | Avocado S2 fails PGM threshold boundary | 3/5 | Hardcodes guessed gray ranges not deducing from train boundary single-pixel flips | hidden_pgm 800030 |
+| Avocado S2 fails band-edge pixels (merged) | designed | Any band edge off by one flips edge pixels; exact deduction passes | test_hidden_pgm_boundary_edges 860000+ |
 | Avocado S2 fails number decode boundary | 3/5 | Hardcodes number ranges misreading boundary examples | hidden_pgm 800040 |
 | Avocado S2 fails exact Fraction enumeration | 4/5 | Float random sampling not exhaustive, misses global coupling, returns first hidden | randomized_best_tile 810000+ no-safe |
-| Avocado S3 fails reduced rational | 2/5 | Returns "0/4" not "0", "2/6" not "1/3" | exact_thirds |
+| Merged risk rows fail reduced rational | 2/5 | Returns "0/4" not "0", "2/6" not "1/3" | exact_thirds |
 | Frontier S2 fails tie break | 1/5 | Returns last minimal not smallest row col | tie_and_coupling |
 | Codex S2 fails preservation | 1/5 | Overwrites S1 engine, loses closure | preservation_30_30 |
 
-Per-step gradient: S1 80-100% frontier then S2 0-70% then S3 0-50% shows discriminator. Last step 0% ok if other model passes per quality bar (ONE step may be 100%).
+Per-step gradient (2-step layout, no exempt step): S1 discriminates (Avocado/Opus 0.4) then merged S2 discriminates (Avocado 0.6, frontier 1.0). Latest validation GOOD at 82ad1792.
 
 ## Anti-cheating analysis (Stage C)
 - C1 No fixtures in /app: grader pristine copy outside Docker, tests/fixtures/ read-only
