@@ -38,13 +38,16 @@ You must deduce this mapping from train_v2 images + board JSON. Sweep all other 
   "safe": [[r,c],...],
   "flags": [[r,c],...],
   "best_tile": [r,c] | null,
-  "probabilities": {"r,c": float}, // optional
   "placement_count": int,          // only when explain_risk true
   "risk_fractions": {"r,c": "n/d"} // only when explain_risk true
 }
 ```
+The output keys are exactly these — no additional keys in any mode. In plain
+mode (no `explain_risk`) the output is exactly `safe`, `flags`, `best_tile`;
+with `"explain_risk": true` it is exactly those three plus `placement_count`
+and `risk_fractions`. Do not emit any other key (in particular, no
+`probabilities` key).
 - `safe`,`flags` same deterministic closure as S1 (preserve)
-- If you emit `probabilities`, include it only when deterministic closure yields no safe tiles, remaining hidden candidates exist, and at least one valid placement exists. When `safe` is non-empty, omit `probabilities`. Keys are `"r,c"` strings and values are JSON numbers.
 - `best_tile`:
   - If safe non-empty → `best_tile = safe[0]` (first sorted safe) → preservation contract
   - Else if remaining hidden non-empty → best_tile is the hidden cell with the
