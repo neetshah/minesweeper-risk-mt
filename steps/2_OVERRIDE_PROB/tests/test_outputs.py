@@ -108,6 +108,34 @@ def run_engine(inp_dict):
     return json.loads(run_engine_raw(inp_dict).decode("utf-8"))
 
 
+def run_engine_result(inp_dict):
+    """Like run_engine_raw but returns the CompletedProcess without asserting
+    success, so tests can assert failure modes (non-zero exit)."""
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            os.chmod(td, 0o777)
+        except OSError:
+            pass
+        inp_path = os.path.join(td, "input.json")
+        out_path = os.path.join(td, "output.json")
+        with open(inp_path, "w") as f:
+            json.dump(inp_dict, f)
+        try:
+            os.chmod(inp_path, 0o666)
+        except OSError:
+            pass
+        base_cmd = [sys.executable, ENGINE, inp_path, out_path]
+        if os.geteuid() != 0:
+            cmd = base_cmd
+        else:
+            dropped = _try_drop_privs(base_cmd)
+            assert dropped is not None, "Cannot drop privs"
+            cmd = dropped
+        env = os.environ.copy()
+        env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin"
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=15, env=env)
+
+
 def ref_neighbors(r, c, rows, cols):
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
@@ -1458,6 +1486,33 @@ def test_exact_output_keys():
             "placement_count",
             "risk_fractions",
         }, got_r.keys()
+
+
+def test_corrupt_pgm_errors_no_fallback():
+    """A present-but-unparseable board_image_pgm is an error, never a signal
+    to silently solve the JSON board (PGM is authoritative ground truth).
+    Engines that fall back to JSON succeed here and fail the test."""
+    cases = [
+        "NOT A PGM AT ALL\n",
+        "P5\n2 2\n255\n0 0 0 0\n",  # wrong magic: binary P5, not plain P2
+    ]
+    for bad_content in cases:
+        with tempfile.TemporaryDirectory() as td:
+            pgm_path = os.path.join(td, "bad.pgm")
+            with open(pgm_path, "w") as f:
+                f.write(bad_content)
+            inp = {
+                "rows": 2,
+                "cols": 2,
+                "total_mines": 1,
+                "board": [[1, -1], [1, 1]],
+                "board_image_pgm": pgm_path,
+            }
+            result = run_engine_result(inp)
+            assert result.returncode != 0, (
+                "corrupt PGM must error, not silently solve JSON: "
+                f"{bad_content!r} rc={result.returncode} err={result.stderr[-200:]}"
+            )
 
 
 def test_exact_reducible_fractions():

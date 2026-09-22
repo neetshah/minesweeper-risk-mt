@@ -22,8 +22,9 @@ Artifact: `/app/project/engine.py` CLI `python3 engine.py INPUT OUTPUT` stdlib o
   PGM+risk combos, `test_hidden_consistent_reports` 20 seeds ref_solve match,
   `test_hidden_pgm_boundary_edges` 20 seeds edge-only pixels ({lo,lo+1,hi-1,hi}
   per true band; off-by-one hardcoded thresholds fail, exact deduction passes).
-  `solution/smoke_test.sh` runs the top-level golden over the inline-comment
-  PGM contract + no-silent-fallback rule (CI-runnable, no docker).
+  the inline-comment PGM contract (`test_hidden_pgm_inline_comments`) and the
+  no-silent-fallback rule (`test_corrupt_pgm_errors_no_fallback`: a
+  present-but-unparseable image must error, never solve JSON) are graded in-suite.
 
 **Performance constraint:** Hidden grading boards constrained to rows≤5 cols≤5 hidden≤12 remaining mines ≤4 placements ≤500 to keep exact enumeration feasible in 15s timeout. Documented in instruction.md fixes combinatorial explosion review.
 
